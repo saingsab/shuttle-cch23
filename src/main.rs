@@ -1,22 +1,12 @@
 use axum::extract::Path;
-use axum::response::{IntoResponse, Response, Json};
-use axum::http::{Uri, StatusCode};
+use axum::http::{StatusCode, Uri};
+use axum::response::{IntoResponse, Json, Response};
 use axum::{routing::get, routing::post, Router};
 use serde::{Deserialize, Serialize};
-// use serde_json::Result;
-// Day 1
-// async fn exclusive_cube(
-//     Path((num1, num2)): Path<(i32, i32)>,
-// ) -> Result<Json<i32>, StatusCode> {
-
-//     let xor_result = num1 ^ num2;
-//     let pow_result = xor_result.pow(3);
-//     Ok(Json(pow_result))
-// }
 
 // Day Bonus 1
 async fn day1(Path(ids): Path<String>) -> Result<Json<i32>, StatusCode> {
-        // Parse the path into a vector of u32
+    // Parse the path into a vector of u32
     let parsed_ids: Result<Vec<i32>, _> = ids
         .split('/')
         .filter(|s| !s.is_empty())
@@ -26,22 +16,16 @@ async fn day1(Path(ids): Path<String>) -> Result<Json<i32>, StatusCode> {
     match parsed_ids {
         Ok(ids) => {
             // Perform the XOR and power of 3 operations
-        let result = ids.iter().fold(0, |acc, &id| acc ^ id).pow(3);
-        
-        Ok(Json(result))
-    }
-    Err(_) => {
-            return Err(StatusCode::BAD_REQUEST)
+            let result = ids.iter().fold(0, |acc, &id| acc ^ id).pow(3);
+
+            Ok(Json(result))
         }
+        Err(_) => return Err(StatusCode::BAD_REQUEST),
     }
-        
 }
 
 async fn unknown() -> Response {
-    (
-        StatusCode::INTERNAL_SERVER_ERROR,
-        "Something went wrong...",
-    ).into_response()
+    (StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong...").into_response()
 }
 
 async fn handle(uri: Uri) -> Response {
@@ -53,24 +37,28 @@ async fn handle(uri: Uri) -> Response {
 }
 
 // Day 4
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize)]
 struct Reindeer {
     name: String,
-    strength: u32,
+    strength: i32,
 }
 
-async fn day_four(data: Json<T>) -> Response {
-    let R: Person = serde_json::from_str(data)?;
+async fn day_four(data: Json<Vec<Reindeer>>) -> Result<Json<i32>, StatusCode> {
+    let mut result = 0;
+    for i in data.iter() {
+        result += i.strength;
+    }
+
+    Ok(Json(result))
 }
 
 #[shuttle_runtime::main]
 async fn main() -> shuttle_axum::ShuttleAxum {
     let router = Router::new()
-                                .route("/4/strength", post(day_four))
-                                .route("/1/*ids", get(day1))
-                                .route("/", get(handle))
-                                .route("/-1/error", get(unknown));
-
+        .route("/4/strength", post(day_four))
+        .route("/1/*ids", get(day1))
+        .route("/", get(handle))
+        .route("/-1/error", get(unknown));
 
     Ok(router.into())
 }
